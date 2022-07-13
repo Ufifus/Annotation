@@ -1,3 +1,4 @@
-media/images*
+*images/*
 *.log
 *.pyc
+*db.sqlite3
