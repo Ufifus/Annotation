@@ -1,0 +1,110 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>{% block title %}{% endblock %}</title>
+        <link href="https://unpkg.com/dropzone@6.0.0-beta.1/dist/dropzone.css" rel="stylesheet" type="text/css" />
+        <link rel="stylesheet" type="text/css" href="{% static 'css/bootstrap.min.css' %}">
+        <link rel="stylesheet" type="text/css" href="{% static 'css/bootstrap-dialog.min.css' %}">
+        <link rel="stylesheet" type="text/css" href="{% static 'css/annotator.css' %}">
+        <link rel="stylesheet" type="text/css" href="{% static 'css/logs.css' %}">
+        <link rel="stylesheet" type="text/css" href="{% static 'css/modal.css' %}">
+        <link rel="stylesheet" type="text/css" href="{% static 'css/jquery-ui.css' %}">
+        <script type="text/javascript" src="{% static 'js/jquery-3.5.0.js' %}"></script>
+        <script type="text/javascript" src="{% static 'js/jquery-ui.js' %}"></script>
+        <script type="text/javascript" src="{% static 'js/shortcut.js' %}"></script>
+        <script type="text/javascript" src="{% static 'js/bootstrap.min.js' %}"></script>
+        <script type="text/javascript" src="{% static 'js/bootstrap-dialog.min.js' %}"></script>
+        <script type="text/javascript" src="{% static 'js/imageFilter.js' %}"></script>
+        <script type="text/javascript" src="{% static 'js/graphNode.js' %}"></script>
+        <script type="text/javascript" src="{% static 'js/qa-utils.js' %}"></script>
+        <script type="text/javascript" src="{% static 'js/ProjectPageScript.js' %}"></script>
+        <script>
+            var make_embed_url = "{% url 'image_app:make-embed' project.name %}";
+            var project_id = {{project.projId|safe}};
+            var make_patches_url = "{% url 'image_app:make-patches' project.name %}";
+            var train_ae_url = "{% url 'image_app:train-ae' project.name %}";
+        </script>
+        <script type="text/javascript" src="{% static 'js/dropzone.js' %}"></script>
+        <script type="text/javascript" src="{% static 'js/image_main.js' %}"></script>
+    </head>
+
+    <body onload="init()">
+
+        <div id = "main" class="container">
+            <div style="display: grid;  width: 100%;">
+                <div style="display: block; width:100%; float:right">
+                    <div style="float:right">
+                        <h1><a style="color:#007bff" href="{% url 'image_app:list-projects' %}" title="Go to Home Page" >Quick Annotator</a></h1>
+                    </div>
+                    <div>
+                        <h1><b>Current Project:</b> {{ project.name }}</h1>
+                    </div>
+                </div>
+            </div>
+            <form id="uploadfiles" class="dropzone dz" action="{% url 'image_app:project' project.name %}" method="post" enctype="multipart/form-data" style="padding: 20px; border: 2px dotted lightgrey;">
+            {% csrf_token %}
+            <div class="fallback">
+                <input name="files" type="image" multiple />
+            </div>
+            <div class="dz-message needsclick">
+                <h3>1. Drop files here or click to upload.</h3>
+            </div>
+        </form>
+        <script type="text/javascript">
+            Dropzone.options.uploadfiles = {
+                init: function () {
+                    // Set up any event handlers
+                    this.on('complete', function (file) {
+                        if (this.getUploadingFiles().length === 0 && this.getQueuedFiles().length === 0) {
+                            location.reload();
+                        }
+                    });
+                }
+            };
+        </script>
+
+            <br>
+            <div style="text-align: center">
+                <a><button id="makePacthButton" disabled class= "btn btn-default" onclick= "make_patches()"><span class="buttonFont" >2. Make Patches</span></button></a>
+                <a><button id="trainAEButton" disabled class= "btn btn-default" onclick= "train_ae()"><span class="buttonFont">3. (Re)train Model 0</span></button></a>
+                <a><button id="makeEmbedButton" disabled class= "btn btn-default" onclick= "make_embed()"><span class="buttonFont">4. Embed Patches</span></button></a>
+                <a href = "{% url 'image_app:plot-embed' project.name %}"><button id="viewEmbedButton" disabled class= "btn btn-default"><span class="buttonFont">5. View Embedding</span></button></a>
+                <br><br>
+                <div>
+                    <textarea id="notifications" class="logbase notification" readonly>Notifications will appear here.</textarea>
+                </div>
+            </div>
+
+            <h3>Click on an image below to begin annotation:</h3>
+        <div>
+            {% for image in images %}
+                <div class="responsive" id="{{ image.image.name }}">
+                    <div class="gallery">
+                        <div>
+                            <a target="_blank" href="{% url 'image_app:annotation' project.name image.imageId %}"><img src="{{ image.image.url }}" height="200px"></a>
+                            <a href="#" style="float:right; " onclick="delete_image('{{ project.name }}', '{{ image.imageId }}', '{{ image.image.name }}')">X</a>
+                            <div class="desc">{{ image.image.name }}</div>
+                            <p align="center">{{ image.image.width }} x {{ image.image.height }}</p>
+                            <dl class="dl-horizontal">
+                                <dt>Annotated patches</dt>
+                                <dd id="patches">{{ image.ROIs }}</dd>
+                                <dt>Training patches</dt>
+                                <dd id="training_patches">{{ image.trainingROIs }}</dd>
+                                <dt>Annotated objects</dt>
+                                <dd id="annotated_objects">{{ image.noobjects }}</dd>
+                                <dt>Image completion</dt>
+                                <dd id="annotated_percentage_{{ image.imageId }}" >N/A</dd>
+                                <script>
+                                    updatePercentCompleted({{ image.width }},{{ image.height }},{{ image.ppixels }},{{ image.npixels }},"annotated_percentage_{{ image.imageId }}")
+                                </script>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+    </body>
+</html>>
