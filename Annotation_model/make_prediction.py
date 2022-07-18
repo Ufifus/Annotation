@@ -51,7 +51,7 @@ def make_prediction(**kwargs):
     logger.warning(f"Сохраняем: \t {newfname_class}")
 
     if not kwargs['force'] and os.path.exists(newfname_class):
-        print("Skipping as output file exists", flush=True)
+        logger.warning("Skipping as output file exists")
     else:
         io = cv2.cvtColor(cv2.imread(fname), cv2.COLOR_BGR2RGB)
         io = cv2.resize(io, (0, 0), fx=resize, fy=resize)

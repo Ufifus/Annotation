@@ -191,7 +191,7 @@ def make_superpixels_worker(image_id, modelreq, **kwargs):
         try:
             make_superpixel_dl(**kwargs)
             image.superpixel_created = True
-            image.superpixel_modelId = kwargs['model']
+            image.superpixel_modelId = kwargs['modelId']
         except Exception as e:
             logger.exception(f'Произошла ошибка при создании суперпикселя {kwargs["image_name"]}')
             logger.exception(e)

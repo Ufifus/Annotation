@@ -164,7 +164,7 @@ def make_patches(request, proj_name):
         'patch_size': patchsize,
     }
     make_patches_worker(**need_data)
-    return JsonResponse(data='Patches have made', status=200)
+    return JsonResponse(data='Patches have made', status=200, safe=False)
 
 
 def train_autoencoder(request, proj_name):
@@ -502,7 +502,7 @@ def get_superpixels(request, proj_name, image_id):
         'base_path': base_root,
         'image_name': image_name,
         'image_path': image.image.path,
-        'model': os.path.join(base_root, '{modelidreq}/best_model.pth',).replace('\\', '/'),
+        'model': os.path.join(base_root, f'models/{modelidreq}/best_model.pth',).replace('\\', '/'),
         'force': force,
     }
 
@@ -560,16 +560,20 @@ def get_prediction(request, proj_name, image_id):
     modelid = int(request.GET.get('model', get_latest_modelId(proj_name)))
     logger.warning(f'Модель для создания предсказания = {modelid}')
 
+
     if modelid < 0:
         logger.warning('У данного изображения(проекта) нет существующей модели так что предсказание недоступно')
         return JsonResponse(data='Model doesnt exist for this image', status=400, safe=False)
 
-    pred_root = os.path.join(MEDIA_ROOT, f'images/{proj_name}/pred{modelid}')
+    pred_root = os.path.join(MEDIA_ROOT, f'images/{proj_name}/pred/{modelid}')
     image_name = image.image.name.split('/')[-1]
     pred_file = os.path.join(pred_root, f'{image_name}'.replace('.png', '_pred.png')).replace('\\', '/')
     model_path = os.path.join(MEDIA_ROOT, f'images/{proj_name}/models/{modelid}/best_model.pth').replace('\\', '/')
 
     logger.warning(f'Полный путь до файла предсказаний: {pred_file}')
+    if os.path.exists(pred_file) and modelid == get_latest_modelId(proj_name):
+        logger.warning('Не создаем предсказание так как создан для послежней модели')
+        return FileResponse(open(pred_file, 'rb'), status=200)
 
     config_pred = {
         'batchsize': int(os.getenv('prediction_batchsize', 256)),
@@ -577,12 +581,14 @@ def get_prediction(request, proj_name, image_id):
         'image_path': image.image.path,
         'pred_path': pred_file,
         'model': model_path,
-        'resize': 1
+        'modelId': modelid,
+        'resize': 1,
+        'force': False
     }
 
     make_prediction_worker(**config_pred)
 
-    return FileResponse(pred_file, status=200)
+    return FileResponse(open(pred_file, 'rb'), status=200)
 
 
 def create_roi(request, proj_name, image_id):
